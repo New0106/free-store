@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:context="http://www.springframework.org/schema/context"
+    xmlns:aop="http://www.springframework.org/schema/aop"
+    xmlns:tx="http://www.springframework.org/schema/tx"
+    xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/context
+        http://www.springframework.org/schema/context/spring-context.xsd
+        http://www.springframework.org/schema/aop
+        http://www.springframework.org/schema/aop/spring-aop.xsd
+        http://www.springframework.org/schema/tx
+    	http://www.springframework.org/schema/tx/spring-tx-3.2.xsd">
+	<!-- 引入属性文件 database.properties -->
+	<bean class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+        <property name="location">
+            <value>classpath:database.properties</value>
+        </property>
+    </bean>
+	<!-- 设置数据源并且配置心跳包 -->
+	<bean id="dataSource" class="org.apache.commons.dbcp2.BasicDataSource"
+        destroy-method="close">
+        <property name="driverClassName" value="${driver}" />
+        <property name="url" value="${url}" />
+        <property name="username" value="${user}" />
+        <property name="password" value="${password}" />
+        
+        <!-- 初始连接数，当这个池被启动时初始化的创建的连接个数 -->
+        <property name="initialSize" value="${initialSize}"/>
+		<!-- 最大空闲连接数，在池中，可以保持空闲状态的最大连接数，
+			超出设置值之外的空闲连接在归还到连接池时将被释放，如设置为负数，则不限制 -->
+		<property name="maxIdle" value="${maxIdle}"/>
+		<!-- 最小空闲连接数，可以在池中保持空闲的最小连接数，低于设置值时，空闲连接将被创建，
+			以努力保持最小空闲连接数>=minIdle，如设置为0，则不创建 -->
+		<property name="minIdle" value="${minIdle}"/>
+		<!-- 从连接池获取一个连接时，最大的等待时间。设置为-1时，如果没有可用连接，一直无限期等待，
+			直到获取到连接为止。如果设置为N（毫秒），则连接池会等待N毫秒，等待不到，则抛出异常 -->
+		<property name="maxWaitMillis" value="${maxWaitMillis}"/>
+		<!-- 一个被抛弃连接可以被移除的超时时间。一个被抛弃连接可以被移除的超时时间，单位为秒 -->
+		<property name="removeAbandonedTimeout" value="${removeAbandonedTimeout}"/>
+		
+		<!-- sql 心跳 -->
+		<!-- 连接空闲时，验证有效性。指明对象是否需要通过对象驱逐者进行校验（如果有的话），假如一个对象验证失
+			败，则对象将被从池中释放。 -->
+		<property name= "testWhileIdle" value="true"/>
+		<!-- 从连接池获取一个连接时，验证有效性。指明在从池中租借对象时是否要进行验证有效，如果对象验证失败，
+			则对象将从池子释放，然后我们将尝试租借另一个 -->
+		<property name= "testOnBorrow" value="false"/>
+		<!-- 连接被归还到连接池时，验证有效性。指明在将对象归还给连接池前是否需要校验。 -->
+		<property name= "testOnReturn" value="false"/>
+		<!-- 确认查询SQL。 -->
+		<property name= "validationQuery" value="select 1"/>
+		<!-- 空闲对象驱逐线程运行时的休眠毫秒数。空闲对象驱逐线程运行时的休眠毫秒数，如果设置为非正数，则不运行
+			空闲对象驱逐线程。 -->
+		<property name= "timeBetweenEvictionRunsMillis" value="60000"/>
+		<!-- 在每个空闲对象驱逐线程运行过程中中进行检查的对象个数 -->
+		<property name= "numTestsPerEvictionRun" value="5"/>
+    </bean>
+    
+	<!-- 设置SqlSessionFactory创建方式 -->
+    <bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+        <property name="dataSource" ref="dataSource" />
+        <property name="configLocation" value="classpath:mybatis-config.xml" />
+    </bean>
+    <!-- 扫描Dao接口，增强为Dao的实现 -->
+	<bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+        <property name="sqlSessionFactoryBeanName" value="sqlSessionFactory" />
+        <property name="basePackage" value="com.dao" />
+    </bean>
+    <!-- 扫描 com.smbms.service 包中的服务类，生成Bean-->
+    <context:component-scan base-package="com.service"/>
+    <!-- 事务管理 -->
+    <bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+        <property name="dataSource" ref="dataSource"></property>
+    </bean>
+    <tx:advice id="txAdvice">
+        <tx:attributes>
+            <tx:method name="find*" propagation="SUPPORTS" />
+            <tx:method name="add*" propagation="REQUIRED" />
+            <tx:method name="del*" propagation="REQUIRED" />
+            <tx:method name="update*" propagation="REQUIRED" />
+            <tx:method name="*" propagation="REQUIRED" />
+        </tx:attributes>
+    </tx:advice>
+    <aop:config>
+        <aop:pointcut id="serviceMethod"
+            expression="execution(* com.service..*.*(..))" />
+        <aop:advisor advice-ref="txAdvice" pointcut-ref="serviceMethod" />
+    </aop:config>
+</beans>
