@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE configuration
+	PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+		"http://mybatis.org/dtd/mybatis-3-config.dtd">
+<configuration>
+	<settings>
+		<!-- 设置自动填充属性的方式 -->
+		<setting name="autoMappingBehavior" value="FULL" />
+		<!-- 设置懒加载方式为 false -->
+		<setting name="lazyLoadingEnabled" value="false" />  
+	</settings>
+	<!-- 类型别名 -->
+	<typeAliases>
+		<package name="com.pojo"/>
+	</typeAliases>
+</configuration>
